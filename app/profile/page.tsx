@@ -1,16 +1,22 @@
-"use client"
+"use client";
 
-import { useAuth } from "@/contexts/auth-context"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Bot, Calendar, Edit, Shield, User, Star, Heart } from "lucide-react"
-import Link from "next/link"
+import { useAuth } from "@/contexts/supabase-auth-context";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bot, Calendar, Edit, Shield, User, Star, Heart } from "lucide-react";
+import Link from "next/link";
 
 export default function ProfilePage() {
-  const { user, isLoading } = useAuth()
+  const { user, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -18,13 +24,13 @@ export default function ProfilePage() {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
         <p className="mt-4 text-muted-foreground">Loading your profile...</p>
       </div>
-    )
+    );
   }
 
   const getDiscordAvatar = () => {
-    if (!user?.avatar) return null
-    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-  }
+    if (!user?.avatar) return null;
+    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
+  };
 
   return (
     <div className="container px-4 py-8 md:px-6 md:py-12">
@@ -42,17 +48,28 @@ export default function ProfilePage() {
               </div>
               <div className="flex flex-col items-center">
                 <Avatar className="h-24 w-24 mb-4">
-                  <AvatarImage src={getDiscordAvatar() || ""} alt={user?.username} />
-                  <AvatarFallback className="text-lg">{user?.username?.charAt(0).toUpperCase()}</AvatarFallback>
+                  <AvatarImage
+                    src={getDiscordAvatar() || ""}
+                    alt={user?.username}
+                  />
+                  <AvatarFallback className="text-lg">
+                    {user?.username?.charAt(0).toUpperCase()}
+                  </AvatarFallback>
                 </Avatar>
                 <CardTitle className="text-2xl">{user?.username}</CardTitle>
                 <CardDescription>#{user?.discriminator}</CardDescription>
                 <div className="flex gap-2 mt-2">
-                  <Badge variant="secondary" className="bg-[#5865F2] text-white">
+                  <Badge
+                    variant="secondary"
+                    className="bg-[#5865F2] text-white"
+                  >
                     Discord User
                   </Badge>
                   {user?.verified && (
-                    <Badge variant="secondary" className="bg-green-500 text-white">
+                    <Badge
+                      variant="secondary"
+                      className="bg-green-500 text-white"
+                    >
                       Verified
                     </Badge>
                   )}
@@ -121,7 +138,9 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Feature Requests</span>
+                    <span className="text-sm font-medium">
+                      Feature Requests
+                    </span>
                     <span className="text-sm">5</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -131,7 +150,9 @@ export default function ProfilePage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium">Community Reputation</span>
+                    <span className="text-sm font-medium">
+                      Community Reputation
+                    </span>
                     <span className="text-sm">Good</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -146,19 +167,22 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2">
                     <Bot className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      Added a new bot: <span className="font-medium">MusicMaster</span>
+                      Added a new bot:{" "}
+                      <span className="font-medium">MusicMaster</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Star className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      Reviewed: <span className="font-medium">TicketMaster</span>
+                      Reviewed:{" "}
+                      <span className="font-medium">TicketMaster</span>
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Heart className="h-4 w-4 text-muted-foreground" />
                     <span>
-                      Favorited: <span className="font-medium">AICompanion</span>
+                      Favorited:{" "}
+                      <span className="font-medium">AICompanion</span>
                     </span>
                   </div>
                 </div>
@@ -184,7 +208,9 @@ export default function ProfilePage() {
                   </div>
                   <CardHeader className="pb-2">
                     <CardTitle>ModeratorBot #{bot}</CardTitle>
-                    <CardDescription>A powerful moderation bot with advanced features.</CardDescription>
+                    <CardDescription>
+                      A powerful moderation bot with advanced features.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pb-2">
                     <div className="flex flex-wrap gap-1">
@@ -201,7 +227,10 @@ export default function ProfilePage() {
                   </CardContent>
                   <div className="px-6 pb-4">
                     <Link href={`/bots/${bot}`}>
-                      <Button variant="default" className="w-full btn-primary-gradient">
+                      <Button
+                        variant="default"
+                        className="w-full btn-primary-gradient"
+                      >
                         View Details
                       </Button>
                     </Link>
@@ -215,26 +244,36 @@ export default function ProfilePage() {
             <Card>
               <CardHeader>
                 <CardTitle>Your Reviews</CardTitle>
-                <CardDescription>Reviews you've written for bots</CardDescription>
+                <CardDescription>
+                  Reviews you've written for bots
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {[1, 2, 3].map((review) => (
-                    <div key={review} className="border-b pb-4 last:border-0 last:pb-0">
+                    <div
+                      key={review}
+                      className="border-b pb-4 last:border-0 last:pb-0"
+                    >
                       <div className="flex items-center justify-between mb-2">
                         <div className="font-medium">TicketMaster</div>
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`h-4 w-4 ${star <= 4 ? "fill-yellow-500 text-yellow-500" : ""}`}
+                              className={`h-4 w-4 ${
+                                star <= 4
+                                  ? "fill-yellow-500 text-yellow-500"
+                                  : ""
+                              }`}
                             />
                           ))}
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        Great bot with lots of features. The ticket system works flawlessly and has saved me a lot of
-                        time managing support requests.
+                        Great bot with lots of features. The ticket system works
+                        flawlessly and has saved me a lot of time managing
+                        support requests.
                       </p>
                       <div className="flex justify-between items-center mt-2 text-xs text-muted-foreground">
                         <span>2 weeks ago</span>
@@ -258,7 +297,9 @@ export default function ProfilePage() {
                   </div>
                   <CardHeader className="pb-2">
                     <CardTitle>AICompanion #{bot}</CardTitle>
-                    <CardDescription>Intelligent AI chatbot with natural language processing.</CardDescription>
+                    <CardDescription>
+                      Intelligent AI chatbot with natural language processing.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="pb-2">
                     <div className="flex flex-wrap gap-1">
@@ -290,6 +331,5 @@ export default function ProfilePage() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }
-
