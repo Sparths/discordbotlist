@@ -19,9 +19,25 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getSession();
+  try {
+    // Attempt to get the session
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
-  return response;
+    // Optional: Add custom logic based on session
+
+    return response;
+  } catch (error) {
+    console.error("Middleware error:", error);
+
+    // Handle potential errors gracefully
+    return NextResponse.next({
+      request: {
+        headers: request.headers,
+      },
+    });
+  }
 }
 
 export const config = {
