@@ -1,8 +1,9 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
-
 import { useAuth } from "@/contexts/supabase-auth-context";
+import { createClientComponent } from "@/contexts/supabase-auth-context";
 import {
   Card,
   CardContent,
@@ -18,12 +19,63 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { useState } from "react";
-import { Bell, Lock, User, Shield, Trash2 } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { User, Bell, Lock, Shield, Trash2, LogOut } from "lucide-react";
 
 export default function SettingsPage() {
-  const { user, isLoading, logout } = useAuth();
+  const { user, profile, isLoading, signOut, refreshProfile } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
+  const [displayName, setDisplayName] = useState("");
+  const [updating, setUpdating] = useState(false);
+  const { toast } = useToast();
+  const supabase = createClientComponent();
+
+  // Update displayName state when profile is loaded
+  useEffect(() => {
+    if (profile?.display_name) {
+      setDisplayName(profile.display_name);
+    } else if (profile?.username) {
+      setDisplayName(profile.username);
+    }
+  }, [profile]);
+
+  const updateDisplayName = async () => {
+    if (!user) return;
+
+    try {
+      setUpdating(true);
+
+      // Update the display name in the database
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          display_name: displayName,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", user.id);
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Success",
+        description: "Display name updated successfully",
+      });
+
+      // Refresh profile data
+      await refreshProfile();
+    } catch (error) {
+      console.error("Error updating display name:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update display name",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -33,11 +85,6 @@ export default function SettingsPage() {
       </div>
     );
   }
-
-  const getDiscordAvatar = () => {
-    if (!user?.avatar) return null;
-    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`;
-  };
 
   return (
     <div className="container px-4 py-8 md:px-6 md:py-12">
@@ -85,16 +132,16 @@ export default function SettingsPage() {
                 <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
                   <Avatar className="h-20 w-20">
                     <AvatarImage
-                      src={getDiscordAvatar() || ""}
-                      alt={user?.username}
+                      src={profile?.avatar_url || ""}
+                      alt={profile?.username}
                     />
                     <AvatarFallback className="text-lg">
-                      {user?.username?.charAt(0).toUpperCase()}
+                      {profile?.username?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="space-y-1 flex-1">
                     <h3 className="font-medium text-lg">
-                      {user?.username}#{user?.discriminator}
+                      {profile?.username}#{profile?.discriminator}
                     </h3>
                     <p className="text-sm text-muted-foreground">
                       Your avatar and username are managed through Discord.
@@ -106,81 +153,24 @@ export default function SettingsPage() {
 
                 <div className="grid gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="display-name">
-                      Display Name (Optional)
-                    </Label>
+                    <Label htmlFor="display-name">Display Name</Label>
                     <Input
                       id="display-name"
                       placeholder="Enter a custom display name"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
                     />
                     <p className="text-sm text-muted-foreground">
                       This name will be shown instead of your Discord username.
-                    </p>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="bio">Bio</Label>
-                    <textarea
-                      id="bio"
-                      className="min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      placeholder="Tell us about yourself..."
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      This will be displayed on your public profile.
                     </p>
                   </div>
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline">Cancel</Button>
-                <Button>Save Changes</Button>
-              </CardFooter>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Public Profile</CardTitle>
-                <CardDescription>
-                  Control what information is visible on your public profile.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="show-email">Show Email Address</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Your email will be visible to other users.
-                    </p>
-                  </div>
-                  <Switch id="show-email" />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="show-bots">Show My Bots</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Your bots will be displayed on your public profile.
-                    </p>
-                  </div>
-                  <Switch id="show-bots" defaultChecked />
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="show-reviews">Show My Reviews</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Your reviews will be displayed on your public profile.
-                    </p>
-                  </div>
-                  <Switch id="show-reviews" defaultChecked />
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button className="w-full">Save Privacy Settings</Button>
+                <Button onClick={updateDisplayName} disabled={updating}>
+                  {updating ? "Saving..." : "Save Changes"}
+                </Button>
               </CardFooter>
             </Card>
           </TabsContent>
@@ -283,7 +273,8 @@ export default function SettingsPage() {
                     <div className="text-sm">
                       <div className="font-medium">Discord</div>
                       <div className="text-xs text-muted-foreground">
-                        Connected as {user?.username}#{user?.discriminator}
+                        Connected as {profile?.username}#
+                        {profile?.discriminator}
                       </div>
                     </div>
                     <div className="ml-auto">
@@ -294,34 +285,6 @@ export default function SettingsPage() {
                         Connected
                       </Badge>
                     </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <div className="space-y-2">
-                  <h3 className="text-sm font-medium">Session Management</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Manage your active sessions and sign out from other devices.
-                  </p>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 rounded-md bg-muted">
-                      <div className="text-sm">
-                        <div className="font-medium">Current Session</div>
-                        <div className="text-xs text-muted-foreground">
-                          Chrome on Windows • Active now
-                        </div>
-                      </div>
-                      <Badge
-                        variant="outline"
-                        className="bg-green-100 text-green-800 border-green-300"
-                      >
-                        Current
-                      </Badge>
-                    </div>
-                    <Button variant="outline" className="w-full">
-                      Sign Out All Other Sessions
-                    </Button>
                   </div>
                 </div>
               </CardContent>
@@ -356,7 +319,11 @@ export default function SettingsPage() {
                   <p className="text-sm text-muted-foreground">
                     Sign out from your current session.
                   </p>
-                  <Button variant="outline" className="w-full" onClick={logout}>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={signOut}
+                  >
                     Sign Out
                   </Button>
                 </div>

@@ -13,15 +13,19 @@ export function createClientComponent() {
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 }
 
+// Define the profile type based on your database
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+
 // Define the context type
 type AuthContextType = {
   user: User | null;
-  profile: any | null; // Replace 'any' with your profile type if available
+  profile: Profile | null;
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   signInWithDiscord: () => Promise<void>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 // Create the context with a default value
@@ -33,6 +37,7 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   signInWithDiscord: async () => {},
   signOut: async () => {},
+  refreshProfile: async () => {},
 });
 
 export function SupabaseAuthProvider({
@@ -43,8 +48,95 @@ export function SupabaseAuthProvider({
   const [supabase] = useState(() => createClientComponent());
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Function to fetch the user's profile from the database
+  const fetchUserProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching profile:", error);
+        return null;
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Unexpected error fetching profile:", error);
+      return null;
+    }
+  };
+
+  // Function to ensure the user profile exists
+  const ensureUserProfile = async (userId: string) => {
+    try {
+      // First try to fetch the profile
+      const existingProfile = await fetchUserProfile(userId);
+
+      if (existingProfile) {
+        setProfile(existingProfile);
+        return;
+      }
+
+      // If no profile exists, create one based on auth data
+      const { data: userData } = await supabase.auth.getUser();
+
+      if (!userData.user) return;
+
+      // Get Discord identity data
+      const identities = userData.user.identities;
+      const discordIdentity = identities?.find(
+        (identity) => identity.provider === "discord"
+      );
+
+      if (discordIdentity && discordIdentity.identity_data) {
+        const { username, global_name, avatar_url, discriminator } =
+          discordIdentity.identity_data;
+
+        // Use global_name (display name) from Discord or fall back to username
+        const displayName = global_name || username;
+
+        // Create the profile
+        const { data: newProfile, error } = await supabase
+          .from("profiles")
+          .insert({
+            id: userId,
+            username: username,
+            discriminator: discriminator || "0000",
+            avatar_url: avatar_url,
+            email: userData.user.email,
+            display_name: displayName,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error("Error creating profile:", error);
+        } else if (newProfile) {
+          setProfile(newProfile);
+        }
+      }
+    } catch (error) {
+      console.error("Error ensuring user profile:", error);
+    }
+  };
+
+  // Function to allow manually refreshing the profile
+  const refreshProfile = async () => {
+    if (!user) return;
+
+    const profileData = await fetchUserProfile(user.id);
+    if (profileData) {
+      setProfile(profileData);
+    }
+  };
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -54,6 +146,12 @@ export function SupabaseAuthProvider({
         } = await supabase.auth.getSession();
         setSession(session);
         setUser(session?.user ?? null);
+
+        if (session?.user) {
+          // Ensure profile exists and fetch it
+          await ensureUserProfile(session.user.id);
+        }
+
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching session:", error);
@@ -63,9 +161,17 @@ export function SupabaseAuthProvider({
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+
+      if (session?.user) {
+        // Ensure profile exists and fetch it
+        await ensureUserProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+
       setIsLoading(false);
     });
 
@@ -89,11 +195,10 @@ export function SupabaseAuthProvider({
 
       if (error) {
         console.error("OAuth Sign In Error:", error);
-        throw error; // Consider handling this error in the calling component
+        throw error;
       }
     } catch (error) {
       console.error("Unexpected OAuth Error:", error);
-      // Optionally show user-friendly error toast
     } finally {
       setIsLoading(false);
     }
@@ -125,6 +230,7 @@ export function SupabaseAuthProvider({
         isAuthenticated: !!user,
         signInWithDiscord,
         signOut,
+        refreshProfile,
       }}
     >
       {children}
