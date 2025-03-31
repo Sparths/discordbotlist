@@ -1,4 +1,4 @@
-// app/auth/callback/route.ts (Improved version)
+// app/auth/callback/route.ts
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -6,16 +6,15 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") || "/dashboard";
   const error = requestUrl.searchParams.get("error");
   const errorDescription = requestUrl.searchParams.get("error_description");
 
   // Handle error case
   if (error) {
-    const errorUrl = new URL("/auth/error", request.url);
+    const errorUrl = new URL("/auth/success", request.url);
     errorUrl.searchParams.set("error", error);
     if (errorDescription) {
-      errorUrl.searchParams.set("message", errorDescription);
+      errorUrl.searchParams.set("error_description", errorDescription);
     }
     return NextResponse.redirect(errorUrl);
   }
@@ -28,7 +27,8 @@ export async function GET(request: NextRequest) {
   const cookieStore = cookies();
 
   // Create a response early to have a cookie container
-  const response = NextResponse.redirect(new URL(next, request.url));
+  const successUrl = new URL("/auth/success", request.url);
+  const response = NextResponse.redirect(successUrl);
 
   // Create supabase client with both the request and response cookie containers
   const supabase = createServerClient(
@@ -57,22 +57,16 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("Error exchanging code for session:", error);
-      return NextResponse.redirect(
-        new URL(
-          `/auth/error?error=server_error&message=${encodeURIComponent(
-            error.message
-          )}`,
-          request.url
-        )
-      );
+      successUrl.searchParams.set("error", "server_error");
+      successUrl.searchParams.set("error_description", error.message);
+      return NextResponse.redirect(successUrl);
     }
 
     // Return the response with cookies already set
     return response;
   } catch (error) {
     console.error("Unexpected error during authentication:", error);
-    return NextResponse.redirect(
-      new URL("/auth/error?error=unknown", request.url)
-    );
+    successUrl.searchParams.set("error", "unknown");
+    return NextResponse.redirect(successUrl);
   }
 }

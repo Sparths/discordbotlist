@@ -1,4 +1,4 @@
-// app/auth/callback/page.tsx (Improved version)
+// app/auth/success/page.tsx
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -15,14 +15,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function AuthCallbackPage() {
+export default function AuthSuccessPage() {
   const router = useRouter();
   const supabase = createClientComponent();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
+    const handleAuthSuccess = async () => {
       try {
         setLoading(true);
 
@@ -87,14 +87,14 @@ export default function AuthCallbackPage() {
           };
         }
       } catch (err) {
-        console.error("Error in auth callback:", err);
+        console.error("Error in auth success:", err);
         setError("Authentication failed. Please try again.");
       } finally {
         setLoading(false);
       }
     };
 
-    handleAuthCallback();
+    handleAuthSuccess();
   }, [supabase, router]);
 
   if (error) {

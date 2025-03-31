@@ -1,4 +1,4 @@
-// contexts/supabase-auth-context.tsx (Improved version)
+// contexts/supabase-auth-context.tsx
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
