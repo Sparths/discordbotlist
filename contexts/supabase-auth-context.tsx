@@ -89,13 +89,13 @@ export function SupabaseAuthProvider({
 
       if (error) {
         console.error("OAuth Sign In Error:", error);
-        throw error;
+        throw error; // Consider handling this error in the calling component
       }
     } catch (error) {
       console.error("Unexpected OAuth Error:", error);
-      setIsLoading(false);
       // Optionally show user-friendly error toast
-      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

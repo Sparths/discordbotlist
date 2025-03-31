@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -20,29 +20,26 @@ export async function middleware(request: NextRequest) {
   });
 
   try {
-    // Attempt to get the session
     const {
       data: { session },
     } = await supabase.auth.getSession();
+
+    if (!session) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
 
     // Optional: Add custom logic based on session
 
     return response;
   } catch (error) {
     console.error("Middleware error:", error);
-
-    // Handle potential errors gracefully
-    return NextResponse.next({
-      request: {
-        headers: request.headers,
-      },
-    });
+    // Optionally redirect to an error page or handle the error differently
+    return NextResponse.redirect(new URL("/error", request.url));
   }
 }
 
 export const config = {
   matcher: [
-    // List your protected routes
     "/dashboard/:path*",
     "/profile/:path*",
     "/settings/:path*",
