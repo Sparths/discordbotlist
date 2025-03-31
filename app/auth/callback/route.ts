@@ -50,32 +50,42 @@ export async function GET(request: NextRequest) {
       );
 
       if (discordIdentity && discordIdentity.identity_data) {
-        const { username, global_name, avatar_url, email } =
+        // Extract all needed values, ensuring username is not null
+        const { username, global_name, avatar_url, email, discriminator } =
           discordIdentity.identity_data;
+
+        // Ensure username is never null by providing fallbacks
+        const usernameValue =
+          username || global_name || email?.split("@")[0] || "User";
 
         // Use global_name (display name) from Discord or fall back to username
         const displayName = global_name || username;
 
-        // Update the user profile in the database
-        const { error: profileError } = await supabase.from("profiles").upsert(
-          {
-            id: data.user.id,
-            username: username,
-            discriminator:
-              discordIdentity.identity_data.discriminator || "0000",
-            avatar_url: avatar_url,
-            email: email,
-            display_name: displayName,
-            updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: "id",
-            ignoreDuplicates: false,
-          }
-        );
+        try {
+          // Update the user profile in the database
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .upsert(
+              {
+                id: data.user.id,
+                username: usernameValue, // Use the validated username that won't be null
+                discriminator: discriminator || "0000",
+                avatar_url: avatar_url,
+                email: email,
+                display_name: displayName,
+                updated_at: new Date().toISOString(),
+              },
+              {
+                onConflict: "id",
+                ignoreDuplicates: false,
+              }
+            );
 
-        if (profileError) {
-          console.error("Error updating user profile:", profileError);
+          if (profileError) {
+            console.error("Error updating user profile:", profileError);
+          }
+        } catch (profileUpdateError) {
+          console.error("Exception in profile update:", profileUpdateError);
         }
       }
     }
