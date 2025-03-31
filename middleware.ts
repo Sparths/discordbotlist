@@ -9,15 +9,41 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const supabase = createServerClient({
-    request,
-    response,
-    cookieOptions: {
-      server: {
-        secure: process.env.NODE_ENV === "production",
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name, value, options) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+        },
+        remove(name, options) {
+          request.cookies.set({
+            name,
+            value: "",
+            ...options,
+          });
+          response.cookies.set({
+            name,
+            value: "",
+            ...options,
+          });
+        },
       },
-    },
-  });
+    }
+  );
 
   try {
     const {
@@ -25,7 +51,7 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getSession();
 
     if (!session) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return NextResponse.redirect(new URL("/auth/login", request.url));
     }
 
     // Optional: Add custom logic based on session
