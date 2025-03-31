@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 // Discord OAuth2 configuration
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID!;
-const DISCORD_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/auth/v1/callback`;
+const DISCORD_REDIRECT_URI = `https://fobhfzjqximhtnddjxrm.supabase.co/auth/v1/callback`;
 
 export async function GET() {
   // Generate a random state for CSRF protection
