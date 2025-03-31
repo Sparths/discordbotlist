@@ -1,0 +1,252 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    /* Primary brand color - vibrant purple */
+    --primary: 265 89% 60%;
+    --primary-foreground: 0 0% 98%;
+
+    /* Secondary brand color - electric blue */
+    --secondary: 210 100% 60%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Accent colors */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --ring: 265 89% 60%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    /* Primary brand color - vibrant purple */
+    --primary: 265 89% 60%;
+    --primary-foreground: 0 0% 98%;
+
+    /* Secondary brand color - electric blue */
+    --secondary: 210 100% 60%;
+    --secondary-foreground: 0 0% 98%;
+
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    --ring: 265 89% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+/* Override container class to ensure it's always centered but with appropriate width */
+.container {
+  @apply mx-auto px-4 md:px-6 lg:px-8;
+  max-width: 100%; /* Allow full width */
+  width: 100%;
+}
+
+@media (min-width: 1400px) {
+  .container {
+    max-width: 1400px; /* Cap the width on very large screens */
+  }
+}
+
+/* Custom styles for the brand identity */
+.brand-gradient {
+  @apply bg-gradient-to-r from-primary via-purple-500 to-secondary;
+}
+
+.brand-gradient-text {
+  @apply text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-secondary;
+}
+
+.brand-card {
+  @apply relative overflow-hidden border rounded-lg;
+}
+
+.brand-card::before {
+  content: "";
+  @apply absolute inset-0 opacity-10 pointer-events-none bg-gradient-to-r from-primary to-secondary;
+  mask-image: radial-gradient(circle at top right, black, transparent 70%);
+}
+
+.brand-card-premium {
+  @apply relative overflow-hidden border rounded-lg border-yellow-300/30;
+}
+
+.brand-card-premium::before {
+  content: "";
+  @apply absolute inset-0 opacity-20 pointer-events-none bg-gradient-to-r from-yellow-400 to-primary;
+  mask-image: radial-gradient(circle at top right, black, transparent 70%);
+}
+
+.brand-card-verified {
+  @apply relative overflow-hidden border rounded-lg border-blue-300/30;
+}
+
+.brand-card-verified::before {
+  content: "";
+  @apply absolute inset-0 opacity-20 pointer-events-none bg-gradient-to-r from-blue-400 to-secondary;
+  mask-image: radial-gradient(circle at top right, black, transparent 70%);
+}
+
+/* Colorful badges for tags */
+.tag-badge-primary {
+  @apply bg-primary/10 text-primary hover:bg-primary/20 transition-colors;
+}
+
+.tag-badge-secondary {
+  @apply bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors;
+}
+
+.tag-badge-purple {
+  @apply bg-purple-500/10 text-purple-500 hover:bg-purple-500/20 transition-colors;
+}
+
+.tag-badge-blue {
+  @apply bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 transition-colors;
+}
+
+.tag-badge-pink {
+  @apply bg-pink-500/10 text-pink-500 hover:bg-pink-500/20 transition-colors;
+}
+
+.tag-badge-green {
+  @apply bg-green-500/10 text-green-500 hover:bg-green-500/20 transition-colors;
+}
+
+.tag-badge-orange {
+  @apply bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 transition-colors;
+}
+
+/* Colorful buttons */
+.btn-primary-gradient {
+  @apply bg-gradient-to-r from-primary to-secondary text-white hover:opacity-90 transition-opacity;
+}
+
+/* Colorful section backgrounds */
+.bg-gradient-subtle {
+  @apply bg-gradient-to-b from-background to-primary/5;
+}
+
+/* Animated background for special elements */
+.animated-gradient {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--primary)),
+    hsl(265, 89%, 70%),
+    hsl(var(--secondary)),
+    hsl(210, 100%, 70%),
+    hsl(var(--primary))
+  );
+  background-size: 300% 100%;
+  animation: gradient-animation 15s ease infinite;
+}
+
+@keyframes gradient-animation {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-muted;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary/30 rounded-full hover:bg-primary/50 transition-colors;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+/* Fix for tag selector buttons */
+.tag-selector-button {
+  @apply truncate;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Center all text elements by default */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  text-align: center;
+}
+
+/* Ensure all flex containers center their items by default */
+.flex-center {
+  @apply flex items-center justify-center;
+}
+
