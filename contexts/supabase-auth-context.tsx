@@ -38,7 +38,9 @@ export function SupabaseAuthProvider({
   const [isLoading, setIsLoading] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
 
-  // Initial session check
+  // Fix for contexts/supabase-auth-context.tsx
+  // Add this modification to the useEffect hook
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -64,24 +66,37 @@ export function SupabaseAuthProvider({
 
     checkSession();
 
-    // Set up auth state listener
+    // Set up auth state listener with a more robust approach
     const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user || null);
+      async (event, newSession) => {
+        console.log("Auth state changed:", event, !!newSession);
 
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
-          setProfile(null);
+        // Only update if there's a meaningful change
+        if (
+          (event === "SIGNED_IN" && !session) ||
+          (event === "SIGNED_OUT" && session) ||
+          event === "TOKEN_REFRESHED"
+        ) {
+          setSession(newSession);
+          setUser(newSession?.user || null);
+
+          if (newSession?.user) {
+            await fetchUserProfile(newSession.user.id);
+          } else {
+            setProfile(null);
+          }
         }
 
         setIsLoading(false);
       }
     );
 
+    // Set up a periodic session check
+    const intervalId = setInterval(checkSession, 60000); // Check every minute
+
     return () => {
       authListener.subscription.unsubscribe();
+      clearInterval(intervalId);
     };
   }, []);
 

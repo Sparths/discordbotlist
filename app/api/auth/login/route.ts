@@ -1,19 +1,19 @@
-import { NextResponse } from "next/server"
+import { NextResponse } from "next/server";
 
 // Discord OAuth2 configuration
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID!
-const DISCORD_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/callback`
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID!;
+const DISCORD_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/auth/v1/callback`;
 
 export async function GET() {
   // Generate a random state for CSRF protection
-  const state = Math.random().toString(36).substring(2, 15)
+  const state = Math.random().toString(36).substring(2, 15);
 
   // Store state in a cookie for verification later
   const response = NextResponse.redirect(
     `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${encodeURIComponent(
-      DISCORD_REDIRECT_URI,
-    )}&response_type=code&scope=identify%20email&state=${state}`,
-  )
+      DISCORD_REDIRECT_URI
+    )}&response_type=code&scope=identify%20email&state=${state}`
+  );
 
   response.cookies.set("discord_oauth_state", state, {
     httpOnly: true,
@@ -21,8 +21,7 @@ export async function GET() {
     sameSite: "lax",
     maxAge: 60 * 10, // 10 minutes
     path: "/",
-  })
+  });
 
-  return response
+  return response;
 }
-
