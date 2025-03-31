@@ -1,3 +1,4 @@
+// middleware.ts (Improved version)
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
@@ -51,16 +52,19 @@ export async function middleware(request: NextRequest) {
     } = await supabase.auth.getSession();
 
     if (!session) {
-      return NextResponse.redirect(new URL("/auth/login", request.url));
+      const url = new URL("/auth/login", request.url);
+      url.searchParams.set("redirect", request.nextUrl.pathname);
+      return NextResponse.redirect(url);
     }
-
-    // Optional: Add custom logic based on session
 
     return response;
   } catch (error) {
     console.error("Middleware error:", error);
-    // Optionally redirect to an error page or handle the error differently
-    return NextResponse.redirect(new URL("/error", request.url));
+    // Redirect to our error page with appropriate parameters
+    const errorUrl = new URL("/error", request.url);
+    errorUrl.searchParams.set("error", "auth");
+    errorUrl.searchParams.set("message", "Authentication verification failed");
+    return NextResponse.redirect(errorUrl);
   }
 }
 

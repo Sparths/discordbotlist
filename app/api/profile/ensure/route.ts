@@ -1,4 +1,4 @@
-// app/api/profile/ensure/route.ts
+// app/api/profile/ensure/route.ts (Improved version)
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -48,40 +48,66 @@ export async function POST(request: NextRequest) {
 
     // If profile doesn't exist, create one based on auth data
     if (!existingProfile) {
-      // Get Discord identity data
-      const identities = user.identities;
-      const discordIdentity = identities?.find(
+      // Get all user identities
+      const identities = user.identities || [];
+      const discordIdentity = identities.find(
         (identity) => identity.provider === "discord"
       );
 
+      let username = "";
+      let discriminator = "0000";
+      let avatarUrl = null;
+      let email = user.email;
+      let displayName = "";
+
+      // Extract Discord identity data if available
       if (discordIdentity && discordIdentity.identity_data) {
-        const { username, global_name, avatar_url, discriminator } =
-          discordIdentity.identity_data;
+        const {
+          username: discordUsername,
+          global_name,
+          avatar_url,
+          discriminator: discordDiscriminator,
+          email: discordEmail,
+        } = discordIdentity.identity_data;
 
-        // Use global_name (display name) from Discord or fall back to username
-        const displayName = global_name || username;
+        username =
+          discordUsername || global_name || user.email?.split("@")[0] || "User";
+        discriminator = discordDiscriminator || "0000";
+        avatarUrl = avatar_url;
+        email = discordEmail || user.email;
+        displayName = global_name || discordUsername || "";
+      } else {
+        // Fallback if Discord identity is not found
+        username =
+          user.user_metadata?.username ||
+          user.user_metadata?.name ||
+          user.email?.split("@")[0] ||
+          "User";
 
-        // Create the profile
-        const { error: createError } = await supabase.from("profiles").insert({
-          id: user.id,
-          username: username,
-          discriminator: discriminator || "0000",
-          avatar_url: avatar_url,
-          email: user.email,
-          display_name: displayName,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-
-        if (createError) {
-          throw createError;
-        }
-
-        return NextResponse.json({
-          message: "Profile created successfully",
-          created: true,
-        });
+        avatarUrl = user.user_metadata?.avatar_url;
+        displayName = user.user_metadata?.name || username;
       }
+
+      // Create the profile
+      const { error: createError } = await supabase.from("profiles").insert({
+        id: user.id,
+        username: username,
+        discriminator: discriminator,
+        avatar_url: avatarUrl,
+        email: email,
+        display_name: displayName,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+
+      if (createError) {
+        throw createError;
+      }
+
+      return NextResponse.json({
+        message: "Profile created successfully",
+        created: true,
+      });
     }
 
     return NextResponse.json({

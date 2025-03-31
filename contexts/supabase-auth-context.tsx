@@ -1,9 +1,11 @@
+// contexts/supabase-auth-context.tsx (Improved version)
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
 import { useContext, createContext, useState, useEffect } from "react";
 import { Database } from "@/types/database.types";
 import type { Session, User } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -50,6 +52,7 @@ export function SupabaseAuthProvider({
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
 
   // Function to fetch the user's profile from the database
   const fetchUserProfile = async (userId: string) => {
@@ -83,43 +86,18 @@ export function SupabaseAuthProvider({
         return;
       }
 
-      // If no profile exists, create one based on auth data
-      const { data: userData } = await supabase.auth.getUser();
+      // If no profile exists, make an API call to create one
+      const response = await fetch("/api/profile/ensure", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
 
-      if (!userData.user) return;
-
-      // Get Discord identity data
-      const identities = userData.user.identities;
-      const discordIdentity = identities?.find(
-        (identity) => identity.provider === "discord"
-      );
-
-      if (discordIdentity && discordIdentity.identity_data) {
-        const { username, global_name, avatar_url, discriminator } =
-          discordIdentity.identity_data;
-
-        // Use global_name (display name) from Discord or fall back to username
-        const displayName = global_name || username;
-
-        // Create the profile
-        const { data: newProfile, error } = await supabase
-          .from("profiles")
-          .insert({
-            id: userId,
-            username: username,
-            discriminator: discriminator || "0000",
-            avatar_url: avatar_url,
-            email: userData.user.email,
-            display_name: displayName,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Error creating profile:", error);
-        } else if (newProfile) {
+      if (response.ok) {
+        // Refetch the profile after creation
+        const newProfile = await fetchUserProfile(userId);
+        if (newProfile) {
           setProfile(newProfile);
         }
       }
@@ -141,6 +119,7 @@ export function SupabaseAuthProvider({
   useEffect(() => {
     const fetchSession = async () => {
       try {
+        setIsLoading(true);
         const {
           data: { session },
         } = await supabase.auth.getSession();
@@ -151,13 +130,14 @@ export function SupabaseAuthProvider({
           // Ensure profile exists and fetch it
           await ensureUserProfile(session.user.id);
         }
-
-        setIsLoading(false);
       } catch (error) {
         console.error("Error fetching session:", error);
+      } finally {
         setIsLoading(false);
       }
     };
+
+    fetchSession();
 
     const {
       data: { subscription },
@@ -174,8 +154,6 @@ export function SupabaseAuthProvider({
 
       setIsLoading(false);
     });
-
-    fetchSession();
 
     return () => {
       subscription.unsubscribe();
@@ -207,14 +185,23 @@ export function SupabaseAuthProvider({
   const signOut = async () => {
     setIsLoading(true);
     try {
+      // Call the server-side logout route to ensure all cookies are properly removed
+      await fetch("/api/auth/logout", { method: "POST" });
+
+      // Also perform client-side signout
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Sign out error", error);
         throw error;
       }
+
+      // Clear state
       setUser(null);
       setSession(null);
       setProfile(null);
+
+      // Redirect to home page
+      router.push("/");
     } finally {
       setIsLoading(false);
     }

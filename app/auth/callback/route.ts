@@ -1,4 +1,4 @@
-// app/auth/callback/route.ts
+// app/auth/callback/route.ts (Improved version)
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
@@ -7,6 +7,18 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") || "/dashboard";
+  const error = requestUrl.searchParams.get("error");
+  const errorDescription = requestUrl.searchParams.get("error_description");
+
+  // Handle error case
+  if (error) {
+    const errorUrl = new URL("/auth/error", request.url);
+    errorUrl.searchParams.set("error", error);
+    if (errorDescription) {
+      errorUrl.searchParams.set("message", errorDescription);
+    }
+    return NextResponse.redirect(errorUrl);
+  }
 
   // If no code is present, redirect to login
   if (!code) {
@@ -53,55 +65,6 @@ export async function GET(request: NextRequest) {
           request.url
         )
       );
-    }
-
-    // After successful authentication, update the user's profile in the database
-    if (data.user) {
-      try {
-        // Get user identity data from Discord
-        const identities = data.user.identities;
-        const discordIdentity = identities?.find(
-          (identity) => identity.provider === "discord"
-        );
-
-        if (discordIdentity && discordIdentity.identity_data) {
-          // Extract all needed values, ensuring username is not null
-          const { username, global_name, avatar_url, email, discriminator } =
-            discordIdentity.identity_data;
-
-          // Ensure username is never null by providing fallbacks
-          const usernameValue =
-            username || global_name || email?.split("@")[0] || "User";
-
-          // Use global_name (display name) from Discord or fall back to username
-          const displayName = global_name || username;
-
-          // Update the user profile in the database
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .upsert(
-              {
-                id: data.user.id,
-                username: usernameValue, // Use the validated username that won't be null
-                discriminator: discriminator || "0000",
-                avatar_url: avatar_url,
-                email: email,
-                display_name: displayName,
-                updated_at: new Date().toISOString(),
-              },
-              {
-                onConflict: "id",
-              }
-            );
-
-          if (profileError) {
-            console.error("Error updating user profile:", profileError);
-          }
-        }
-      } catch (profileUpdateError) {
-        console.error("Exception in profile update:", profileUpdateError);
-        // Continue with the flow even if profile update fails
-      }
     }
 
     // Return the response with cookies already set

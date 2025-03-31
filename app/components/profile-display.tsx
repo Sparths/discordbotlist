@@ -1,3 +1,4 @@
+// app/components/profile-display.tsx (Improved version)
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,58 +16,74 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/supabase-auth-context";
 import { createClientComponent } from "@/contexts/supabase-auth-context";
+import { Skeleton } from "@/components/ui/skeleton";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function ProfileDisplay() {
-  const { user, session } = useAuth();
-  const [profile, setProfile] = useState<any>(null);
+  const { user, profile, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const { toast } = useToast();
   const supabase = createClientComponent();
 
   useEffect(() => {
-    async function loadProfile() {
-      if (!user) return;
+    setLoading(true);
 
-      try {
-        setLoading(true);
-
-        // Fetch user profile from the database
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (error) {
-          throw error;
-        }
-
-        if (data) {
-          setProfile(data);
-          setDisplayName(data.display_name || data.username || "");
-        }
-      } catch (error) {
-        console.error("Error fetching profile:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load profile information",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
+    if (!user) {
+      setLoading(false);
+      return;
     }
 
-    loadProfile();
-  }, [user, supabase, toast]);
+    // Initialize displayName from profile when it's available
+    if (profile) {
+      setDisplayName(profile.display_name || profile.username || "");
+      setLoading(false);
+    } else {
+      // If profile isn't available, try to fetch it
+      const loadProfile = async () => {
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single();
+
+          if (error) {
+            console.error("Error fetching profile:", error);
+            setError("Failed to load profile information");
+          } else if (data) {
+            setDisplayName(data.display_name || data.username || "");
+          }
+        } catch (err) {
+          console.error("Unexpected error:", err);
+          setError("An unexpected error occurred");
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      loadProfile();
+    }
+  }, [user, profile, supabase]);
 
   const updateDisplayName = async () => {
     if (!user) return;
 
     try {
       setUpdating(true);
+
+      // Validate
+      if (!displayName.trim()) {
+        toast({
+          title: "Error",
+          description: "Display name cannot be empty",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Update the display name in the database
       const { error } = await supabase
@@ -86,11 +103,8 @@ export default function ProfileDisplay() {
         description: "Display name updated successfully",
       });
 
-      // Update local state
-      setProfile({
-        ...profile,
-        display_name: displayName,
-      });
+      // Refresh profile data
+      await refreshProfile();
     } catch (error) {
       console.error("Error updating display name:", error);
       toast({
@@ -105,10 +119,68 @@ export default function ProfileDisplay() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        <span className="ml-2">Loading profile...</span>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>
+            Manage how your profile appears on DiscordBotList
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[150px]" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-[180px]" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Skeleton className="h-10 w-[100px]" />
+        </CardFooter>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <div className="mt-4">
+            <Button onClick={() => window.location.reload()}>
+              Retry Loading Profile
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!user || !profile) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Not Logged In</AlertTitle>
+            <AlertDescription>
+              You need to be logged in to view profile information.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -143,7 +215,10 @@ export default function ProfileDisplay() {
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={updateDisplayName} disabled={updating || !displayName}>
+        <Button
+          onClick={updateDisplayName}
+          disabled={updating || !displayName.trim()}
+        >
           {updating ? "Saving..." : "Save Changes"}
         </Button>
       </CardFooter>
