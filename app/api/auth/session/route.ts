@@ -1,28 +1,43 @@
-import { type NextRequest, NextResponse } from "next/server"
-import type { Session } from "@/types/auth"
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import type { Session } from "@/types/auth";
 
-export async function GET(request: NextRequest) {
-  const sessionCookie = request.cookies.get("session")?.value
+export async function GET() {
+  const cookieStore = cookies();
+  const supabase = createServerClient({
+    cookieStore,
+    cookieOptions: {
+      server: {
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  });
 
-  if (!sessionCookie) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  try {
-    const session: Session = JSON.parse(sessionCookie)
+  // Transform Supabase session to our custom Session type
+  const customSession: Session = {
+    user: {
+      id: session.user.id,
+      username:
+        session.user.user_metadata.username ??
+        session.user.email?.split("@")[0],
+      discriminator: session.user.user_metadata.discriminator ?? "0000",
+      avatar: session.user.user_metadata.avatar_url,
+      email: session.user.email,
+      createdAt: new Date(session.user.created_at),
+      updatedAt: new Date(),
+    },
+    accessToken: session.access_token,
+    expiresAt: Date.now() + session.expires_in * 1000,
+  };
 
-    // Check if session is expired
-    if (session.expiresAt < Date.now()) {
-      // Session expired, clear cookie
-      const response = NextResponse.json({ error: "Session expired" }, { status: 401 })
-      response.cookies.delete("session")
-      return response
-    }
-
-    return NextResponse.json(session)
-  } catch (error) {
-    console.error("Session parse error:", error)
-    return NextResponse.json({ error: "Invalid session" }, { status: 401 })
-  }
+  return NextResponse.json(customSession);
 }
-

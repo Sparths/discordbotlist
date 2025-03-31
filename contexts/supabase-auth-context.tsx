@@ -7,6 +7,7 @@ import type { Session, User } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const REDIRECT_URL = process.env.NEXT_PUBLIC_APP_URL + "/auth/callback";
 
 export function createClientComponent() {
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
@@ -81,17 +82,19 @@ export function SupabaseAuthProvider({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "discord",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: REDIRECT_URL,
           scopes: "identify email",
         },
       });
 
       if (error) {
-        console.error("Sign in error", error);
+        console.error("OAuth Sign In Error:", error);
         throw error;
       }
     } catch (error) {
+      console.error("Unexpected OAuth Error:", error);
       setIsLoading(false);
+      // Optionally show user-friendly error toast
       throw error;
     }
   };

@@ -16,13 +16,18 @@ export async function GET() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "discord",
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      scopes: "identify email",
     },
   });
 
   if (error) {
-    return NextResponse.redirect(new URL("/auth/error", request.url));
+    console.error("Server-side login error:", error);
+    return NextResponse.redirect(
+      new URL(`/auth/error?message=${encodeURIComponent(error.message)}`)
+    );
   }
 
+  // Redirect to the OAuth provider's authentication page
   return NextResponse.redirect(data.url!);
 }
