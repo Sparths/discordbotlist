@@ -1,8 +1,9 @@
-"use client"
+// app/components/site-header.tsx
+"use client";
 
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -11,7 +12,7 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu"
+} from "@/components/ui/navigation-menu";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,20 +20,33 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Bot, ChevronDown, Menu, Search, User, Sparkles, LogOut, Settings, Heart, LayoutDashboard } from "lucide-react"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { ThemeToggle } from "./theme-toggle"
-import { useAuth } from "@/contexts/auth-context"
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Bot,
+  ChevronDown,
+  Menu,
+  Search,
+  User,
+  Sparkles,
+  LogOut,
+  Settings,
+  Heart,
+  LayoutDashboard,
+} from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { ThemeToggle } from "./theme-toggle";
+import { useAuth } from "@/contexts/supabase-auth-context";
 
 export function SiteHeader() {
-  const { user, isAuthenticated, isLoading, login, logout } = useAuth()
-
-  const getDiscordAvatar = () => {
-    if (!user?.avatar) return null
-    return `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`
-  }
+  const {
+    user,
+    profile,
+    isAuthenticated,
+    isLoading,
+    signInWithDiscord,
+    signOut,
+  } = useAuth();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -46,7 +60,7 @@ export function SiteHeader() {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="pr-0">
-              <MobileNav isAuthenticated={isAuthenticated} logout={logout} />
+              <MobileNav isAuthenticated={isAuthenticated} logout={signOut} />
             </SheetContent>
           </Sheet>
 
@@ -68,7 +82,12 @@ export function SiteHeader() {
           <div className="hidden md:flex md:w-60 lg:w-80">
             <form action="/bots" method="get" className="relative w-full">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input type="search" name="search" placeholder="Search bots..." className="w-full pl-8 rounded-lg" />
+              <Input
+                type="search"
+                name="search"
+                placeholder="Search bots..."
+                className="w-full pl-8 rounded-lg"
+              />
             </form>
           </div>
 
@@ -81,9 +100,12 @@ export function SiteHeader() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="rounded-full">
                   <Avatar className="h-8 w-8 ring-2 ring-primary/20">
-                    <AvatarImage src={getDiscordAvatar() || ""} alt={user?.username} />
+                    <AvatarImage
+                      src={profile?.avatar_url || ""}
+                      alt={profile?.username}
+                    />
                     <AvatarFallback className="bg-primary/10 text-primary">
-                      {user?.username?.charAt(0).toUpperCase()}
+                      {profile?.username?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -91,51 +113,73 @@ export function SiteHeader() {
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>
                   <div className="flex flex-col">
-                    <span>{user?.username}</span>
-                    <span className="text-xs text-muted-foreground">#{user?.discriminator}</span>
+                    <span>{profile?.username}</span>
+                    {profile?.discriminator && (
+                      <span className="text-xs text-muted-foreground">
+                        #{profile?.discriminator}
+                      </span>
+                    )}
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard" className="flex items-center cursor-pointer">
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center cursor-pointer"
+                  >
                     <LayoutDashboard className="mr-2 h-4 w-4" />
                     Dashboard
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/profile" className="flex items-center cursor-pointer">
+                  <Link
+                    href="/profile"
+                    className="flex items-center cursor-pointer"
+                  >
                     <User className="mr-2 h-4 w-4" />
                     Profile
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/favorites" className="flex items-center cursor-pointer">
+                  <Link
+                    href="/favorites"
+                    className="flex items-center cursor-pointer"
+                  >
                     <Heart className="mr-2 h-4 w-4" />
                     Favorites
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <Link href="/settings" className="flex items-center cursor-pointer">
+                  <Link
+                    href="/settings"
+                    className="flex items-center cursor-pointer"
+                  >
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="flex items-center cursor-pointer">
+                <DropdownMenuItem
+                  onClick={signOut}
+                  className="flex items-center cursor-pointer"
+                >
                   <LogOut className="mr-2 h-4 w-4" />
                   Log Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button onClick={login} className="bg-[#5865F2] hover:bg-[#4752C4] text-white">
+            <Button
+              onClick={signInWithDiscord}
+              className="bg-[#5865F2] hover:bg-[#4752C4] text-white"
+            >
               Login
             </Button>
           )}
         </div>
       </div>
     </header>
-  )
+  );
 }
 
 function DesktopNav({ isAuthenticated }: { isAuthenticated: boolean }) {
@@ -144,7 +188,9 @@ function DesktopNav({ isAuthenticated }: { isAuthenticated: boolean }) {
       <NavigationMenuList>
         <NavigationMenuItem>
           <Link href="/bots" legacyBehavior passHref>
-            <NavigationMenuLink className={navigationMenuTriggerStyle()}>Browse Bots</NavigationMenuLink>
+            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+              Browse Bots
+            </NavigationMenuLink>
           </Link>
         </NavigationMenuItem>
 
@@ -158,8 +204,12 @@ function DesktopNav({ isAuthenticated }: { isAuthenticated: boolean }) {
                   href={category.href}
                   className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
                 >
-                  <div className="text-sm font-medium leading-none">{category.title}</div>
-                  <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{category.description}</p>
+                  <div className="text-sm font-medium leading-none">
+                    {category.title}
+                  </div>
+                  <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                    {category.description}
+                  </p>
                 </Link>
               ))}
             </div>
@@ -176,8 +226,12 @@ function DesktopNav({ isAuthenticated }: { isAuthenticated: boolean }) {
                   href={resource.href}
                   className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-primary/10 hover:text-primary focus:bg-primary/10 focus:text-primary"
                 >
-                  <div className="text-sm font-medium leading-none">{resource.title}</div>
-                  <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">{resource.description}</p>
+                  <div className="text-sm font-medium leading-none">
+                    {resource.title}
+                  </div>
+                  <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                    {resource.description}
+                  </p>
                 </Link>
               ))}
             </div>
@@ -187,7 +241,9 @@ function DesktopNav({ isAuthenticated }: { isAuthenticated: boolean }) {
         {isAuthenticated && (
           <NavigationMenuItem>
             <Link href="/dashboard" legacyBehavior passHref>
-              <NavigationMenuLink className={navigationMenuTriggerStyle()}>Dashboard</NavigationMenuLink>
+              <NavigationMenuLink className={navigationMenuTriggerStyle()}>
+                Dashboard
+              </NavigationMenuLink>
             </Link>
           </NavigationMenuItem>
         )}
@@ -202,10 +258,16 @@ function DesktopNav({ isAuthenticated }: { isAuthenticated: boolean }) {
         </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
-  )
+  );
 }
 
-function MobileNav({ isAuthenticated, logout }: { isAuthenticated: boolean; logout: () => void }) {
+function MobileNav({
+  isAuthenticated,
+  logout,
+}: {
+  isAuthenticated: boolean;
+  logout: () => void;
+}) {
   return (
     <div className="flex flex-col gap-4 py-4">
       <Link href="/" className="flex items-center gap-2 px-2">
@@ -220,7 +282,11 @@ function MobileNav({ isAuthenticated, logout }: { isAuthenticated: boolean; logo
       <div className="px-2 py-2">
         <div className="relative w-full">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input type="search" placeholder="Search bots..." className="w-full pl-8 rounded-lg" />
+          <Input
+            type="search"
+            placeholder="Search bots..."
+            className="w-full pl-8 rounded-lg"
+          />
         </div>
       </div>
 
@@ -239,7 +305,11 @@ function MobileNav({ isAuthenticated, logout }: { isAuthenticated: boolean; logo
           </div>
           <div className="ml-4 border-l pl-2 py-1 border-primary/20">
             {categories.map((category) => (
-              <Link key={category.title} href={category.href} className="flex py-1 hover:text-primary">
+              <Link
+                key={category.title}
+                href={category.href}
+                className="flex py-1 hover:text-primary"
+              >
                 {category.title}
               </Link>
             ))}
@@ -253,7 +323,11 @@ function MobileNav({ isAuthenticated, logout }: { isAuthenticated: boolean; logo
           </div>
           <div className="ml-4 border-l pl-2 py-1 border-primary/20">
             {resources.map((resource) => (
-              <Link key={resource.title} href={resource.href} className="flex py-1 hover:text-primary">
+              <Link
+                key={resource.title}
+                href={resource.href}
+                className="flex py-1 hover:text-primary"
+              >
                 {resource.title}
               </Link>
             ))}
@@ -309,13 +383,14 @@ function MobileNav({ isAuthenticated, logout }: { isAuthenticated: boolean; logo
         </Link>
       </div>
     </div>
-  )
+  );
 }
 
 const categories = [
   {
     title: "Moderation",
-    description: "Bots that help maintain order and enforce rules in your server.",
+    description:
+      "Bots that help maintain order and enforce rules in your server.",
     href: "/bots?category=Moderation",
   },
   {
@@ -353,7 +428,7 @@ const categories = [
     description: "Bots with artificial intelligence and advanced features.",
     href: "/bots?category=AI & Advanced",
   },
-]
+];
 
 const resources = [
   {
@@ -376,5 +451,4 @@ const resources = [
     description: "Get help with any issues or questions.",
     href: "/support",
   },
-]
-
+];
